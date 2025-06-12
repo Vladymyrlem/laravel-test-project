@@ -64,3 +64,5 @@ WORKDIR /var/www
 #entrypoint
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["php-fpm"]
+
+RUN pecl install xdebug-3.4.3 && docker-php-ext-enable xdebug
