@@ -1,122 +1,63 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Comments App
 
-# Laravel Docker Starter Kit
-- Laravel v12.x
-- PHP v8.4.x
-- MySQL v8.1.x (default)
-- MariaDB v10.11.x
-- PostgreSQL v16.x
-- pgAdmin v4.x
-- phpMyAdmin v5.x
-- Mailpit v1.x
-- Node.js v18.x
-- NPM v10.x
-- Yarn v1.x
-- Vite v5.x
-- Rector v1.x
-- Redis v7.2.x
+## Описание проекта
 
-# Requirements
-- Stable version of [Docker](https://docs.docker.com/engine/install/)
-- Compatible version of [Docker Compose](https://docs.docker.com/compose/install/#install-compose)
+Comments App — это веб-приложение для добавления и отображения каскадных комментариев с поддержкой многоуровневых ответов. Реализовано с использованием Laravel 12 (Backend) и Vue.js (Frontend).  
+Поддерживает валидацию формы, загрузку изображений и текстовых файлов, предпросмотр комментариев с помощью AJAX, защиту от XSS и SQL-инъекций, Google reCAPTCHA и кастомную текстовую CAPTCHA.
 
-# How To Deploy
+---
 
-### For first time only !
-- `git clone https://github.com/refactorian/laravel-docker.git`
-- `cd laravel-docker`
-- `docker compose up -d --build`
-- `docker compose exec php bash`
-- `composer setup`
+## Функциональность
 
-### From the second time onwards
-- `docker compose up -d`
+- Форма добавления комментария с полями:
+    - User Name (обязательное, латиница и цифры)
+    - E-mail (обязательное, формат email)
+    - Home Page (необязательное, URL)
+    - CAPTCHA (Google reCAPTCHA или текстовая)
+    - Текст комментария (обязательное, поддержка тегов `<a>`, `<code>`, `<i>`, `<strong>`)
+    - Прикрепление изображения (JPG, PNG, GIF) или текстового файла (TXT)
+- Каскадные комментарии с неограниченной вложенностью ответов
+- Сортировка комментариев по User Name, Email и дате (по возрастанию/убыванию)
+- Пагинация — 25 комментариев на страницу
+- Предпросмотр комментария без перезагрузки страницы (AJAX)
+- Панель форматирования (i, strong, code, a)
+- Адаптивный дизайн с использованием Tailwind CSS (или Bootstrap)
+- Защита от XSS и SQL-инъекций
+- Логирование ошибок загрузки файлов и валидации
+- Асинхронная обработка (Laravel Queues)
+- Реальное время через Laravel Echo и WebSocket
+- Кэширование комментариев для оптимизации скорости
 
-# Notes
+---
 
-### Laravel Versions
-- [Laravel 12.x](https://github.com/refactorian/laravel-docker/tree/main)
-- [Laravel 11.x](https://github.com/refactorian/laravel-docker/tree/laravel_11x)
-- [Laravel 10.x](https://github.com/refactorian/laravel-docker/tree/laravel_10x)
+## Используемые технологии
 
-### Laravel App
-- URL: http://localhost
+- Backend:
+    - PHP 8.2
+    - Laravel Framework 12.x
+    - Eloquent ORM
+    - MySQL (рекомендовано)
+    - Redis (для очередей и кэширования)
+    - Google reCAPTCHA
+    - Intervention/Image (обработка изображений)
 
-### Mailpit
-- URL: http://localhost:8025
+- Frontend:
+    - Vue.js 3 (Vite)
+    - Tailwind CSS или Bootstrap
 
-### phpMyAdmin
-- URL: http://localhost:8080
-- Server: `db`
-- Username: `refactorian`
-- Password: `refactorian`
-- Database: `refactorian`
+- Инструменты:
+    - Docker + docker-compose
+    - Git (с логичными коммитами)
+    - PHPUnit / Pest (тестирование)
+    - Laravel Echo + Pusher или Socket.IO (WebSocket)
 
-### Adminer
-- URL: http://localhost:9090
-- Server: `db`
-- Username: `refactorian`
-- Password: `refactorian`
-- Database: `refactorian`
+---
 
-### Basic docker compose commands
-- Build or rebuild services
-    - `docker compose build`
-- Create and start containers
-    - `docker compose up -d`
-- Stop and remove containers, networks
-    - `docker compose down`
-- Stop all services
-    - `docker compose stop`
-- Restart service containers
-    - `docker compose restart`
-- Run a command inside a container
-    - `docker compose exec [container] [command]`
+## Развёртывание и запуск
 
-### Useful Laravel Commands
-- Display basic information about your application
-    - `php artisan about`
-- Remove the configuration cache file
-    - `php artisan config:clear`
-- Flush the application cache
-    - `php artisan cache:clear`
-- Clear all cached events and listeners
-    - `php artisan event:clear`
-- Delete all of the jobs from the specified queue
-    - `php artisan queue:clear`
-- Remove the route cache file
-    - `php artisan route:clear`
-- Clear all compiled view files
-    - `php artisan view:clear`
-- Remove the compiled class file
-    - `php artisan clear-compiled`
-- Remove the cached bootstrap files
-    - `php artisan optimize:clear`
-- Delete the cached mutex files created by scheduler
-    - `php artisan schedule:clear-cache`
-- Flush expired password reset tokens
-    - `php artisan auth:clear-resets`
+### Локальная установка
 
-### Laravel Pint (Code Style Fixer | PHP-CS-Fixer)
-- Format all files
-    - `vendor/bin/pint`
-- Format specific files or directories
-    - `vendor/bin/pint app/Models`
-    - `vendor/bin/pint app/Models/User.php`
-- Format all files with preview
-    - `vendor/bin/pint -v`
-- Format uncommitted changes according to Git
-    - `vendor/bin/pint --dirty`
-- Inspect all files
-  - `vendor/bin/pint --test`
-
-### Rector
-- Dry Run
-    - `vendor/bin/rector process --dry-run`
-- Process
-    - `vendor/bin/rector process`
-
-# Alternatives
-- [Laravel Sail](https://laravel.com/docs/master/sail)
-- [Laravel Herd](https://herd.laravel.com/)
-- [Laradock](https://laradock.io/)
+1. Клонируйте репозиторий:
+```bash
+git clone <репозиторий>
+cd comments-app
