@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('comments', function (Blueprint $table) {
+        Schema::create('media', function (Blueprint $table) {
             $table->id();
-            $table->string('user_name');
-            $table->string('email');
-            $table->string('homepage')->nullable();
-            $table->text('text');
-            $table->foreignId('parent_id')->nullable()->constrained('comments')->onDelete('cascade');
-            $table->string('image_path')->nullable();
+
+            // Поліморфні поля:
+            $table->unsignedBigInteger('mediable_id');
+            $table->string('mediable_type');
+
+            $table->string('file_url');
+            $table->string('type'); // 'image', 'pdf', 'text', etc.
+
             $table->timestamps();
         });
 
@@ -29,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('comments');
+        Schema::dropIfExists('media');
     }
 };
