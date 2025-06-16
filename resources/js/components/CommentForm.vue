@@ -38,11 +38,29 @@ const openEditModal = (comment) => {
     email.value = comment.email
     homepage.value = comment.homepage
     text.value = comment.text
-    imagePreview.value = comment.attachment_url || null
-    attachment.value = null // щоб не затирався старий файл
+
+    attachment.value = null // очищаємо новий файл
+
+    if (comment.media && comment.media.length) {
+        const file = comment.media[0]
+        const extension = file.url.split('.').pop().toLowerCase()
+
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+            imagePreview.value = file.url
+        } else {
+            imagePreview.value = null
+        }
+        editComment.value.attachment_url = file.url
+        editComment.value.attachment_type = file.type
+    } else {
+        imagePreview.value = null
+        editComment.value.attachment_url = null
+        editComment.value.attachment_type = null
+    }
 
     openModal()
 }
+
 
 const replyTo = (id) => {
     parent_id.value = id
@@ -125,20 +143,45 @@ const submit = async () => {
         const toastEl = document.getElementById('success-toast')
         const toast = new Toast(toastEl)
         toast.show()
+
+        reloadComments();
+
     } catch (e) {
+        console.error('Помилка надсилання. Повна відповідь:', e)
+
         if (e.response?.data?.errors) {
-            console.log('Validation errors:', e.response.data.errors); // додай для дебагу
-            errors.value = e.response.data.errors
+            console.log('Validation errors:', e.response.data.errors);
+            errors.value = e.response.data.errors;
         } else {
-            alert('Помилка надсилання')
+            alert('Помилка надсилання');
         }
     }
 }
+
 
 onMounted(() => {
     window.replyTo = replyTo
     window.editComment = openEditModal
 })
+const reloadComments = () => {
+    const container = document.getElementById('commentsContainer');
+
+    const params = new URLSearchParams({
+        sort_by: 'created_at',
+        sort_dir: 'desc'
+    });
+
+    axios.get(`/comments/listing?${params}`)
+        .then(response => {
+            container.innerHTML = response.data;
+            if (window.lightbox) {
+                lightbox.reload(); // або будь-яка ініціалізація
+            }
+        })
+        .catch(err => {
+            console.error('Не вдалося завантажити коментарі:', err);
+        });
+}
 
 
 
@@ -209,7 +252,12 @@ onMounted(() => {
                         <input type="file" name="attachment" id="attachment" class="form-control" @change="handleFileChange" />
                         <div id="image-preview" class="mt-2">
                             <img v-if="imagePreview" :src="imagePreview" alt="Превʼю" class="img-fluid rounded" />
+                            <div v-else-if="editComment?.attachment_url">
+                                <a :href="editComment.attachment_url" target="_blank">📎 Переглянути прикріплений файл</a>
+                            </div>
                         </div>
+
+
                     </div>
 
 

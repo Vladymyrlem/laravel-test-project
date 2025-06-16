@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\Image;
 use Intervention\Image\ImageManager;
 
@@ -76,7 +77,7 @@ class CommentsController extends Controller
             'text' => ['required'],
             'g-recaptcha-response' => 'required|captcha',
             'parent_id' => ['nullable', 'exists:comments,id'],
-            'attachment' => ['nullable', 'file', 'mimes:jpg,png,gif,webp,txt,pdf', 'max:100'], // додано pdf
+            'attachment' => ['nullable', 'file', 'mimes:jpg,png,gif,txt,pdf', 'max:100'], // додано pdf
         ]);
 
         $text = strip_tags($request->text, '<a><code><i><strong>');
@@ -150,7 +151,7 @@ class CommentsController extends Controller
         $validated = $request->validate([
             'user_name' => 'required|string|max:100',
             'content' => 'required|string|max:1000',
-            'attachment' => 'nullable|file|max:2048|mimes:jpg,jpeg,png,gif,pdf,docx,txt,webp',
+            'attachment' => 'nullable|file|max:2048|mimes:jpg,jpeg,png,gif,pdf,docx,txt',
             'g-recaptcha-response' => 'required|captcha',
         ]);
 
@@ -172,12 +173,16 @@ class CommentsController extends Controller
 
                 $file = $request->file('attachment');
                 $extension = strtolower($file->getClientOriginalExtension());
-                $filename = \Str::uuid() . '.' . $extension;
+                $filename = Str::uuid() . '.' . $extension;
                 $path = 'uploads/' . $filename;
-
-                if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-                    $manager = new \Intervention\Image\ImageManager(['driver' => 'gd']); // або 'imagick'
-                    $image = $manager->make($file->getPathname());
+                if ($extension === 'webp') {
+                    throw new \Exception('WebP не підтримується на сервері');
+                }
+                if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
+//                    $manager = new ImageManager(['driver' => 'gd']); // або 'imagick'
+//                    $image = $manager->make($file->getPathname());
+                    $manager = new ImageManager(new Driver());
+                    $image = $manager->read($file->getPathname());
                     $image->resize(320, 240, function ($constraint) {
                         $constraint->aspectRatio();
                         $constraint->upsize();
@@ -202,7 +207,9 @@ class CommentsController extends Controller
 
         $comment->save();
 
-        return redirect()->route('comments.edit', $comment)->with('success', 'Коментар успішно оновлено!');
+//        return redirect()->route('comments.edit', $comment)->with('success', 'Коментар успішно оновлено!');
+        return response()->json(['message' => 'Коментар успішно оновлено!']);
+
     }
 
 
@@ -214,4 +221,21 @@ class CommentsController extends Controller
         $comment->delete();
         return redirect()->route('comments.index')->with('success', 'Comment deleted');
     }
+    public function listing(Request $request)
+    {
+        $sortField = $request->get('sort_by', 'created_at');
+        $sortDirection = $request->get('sort_dir', 'desc');
+
+        $allowedSorts = ['user_name', 'email', 'created_at'];
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'created_at';
+        }
+
+        $comments = Comment::with(['children', 'media'])->whereNull('parent_id')
+            ->orderBy($sortField, $sortDirection)
+            ->paginate(25);
+
+        return view('comments.partials.comments-list', compact('comments'))->render(); // повертає HTML
+    }
+
 }

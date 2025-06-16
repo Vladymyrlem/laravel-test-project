@@ -1,10 +1,12 @@
-<div class="col-12">
+<div class="col-12" :class="'comment-' . $comment->id" data-comment-id="{{ $comment->id }}">
     <div class="card mb-3">
         <div class="card-body">
             <div class="meta d-flex align-items-center justify-content-start">
                 <small class="text-muted">Creating {{ $comment->created_at->format('d.m.Y H:i') }}</small>&nbsp; by&nbsp;
                 <a class="small-text" href="mailto:{{ $comment->email }}">{{ $comment->user_name }}</a>
-                <a href="{{ route('comments.edit', $comment->id) }}"></a>
+                <button class="btn btn-sm btn-outline-secondary edit-button d-flex ms-auto" onclick="editComment({{ json_encode($comment) }})">
+                    ✏️ Редагувати
+                </button>
             </div>
             <div class="comment-content">
                 {!! $comment->text !!}
@@ -44,6 +46,7 @@
                 </div>
             @endif
         </div>
+
 
         {{-- Рекурсія --}}
         @if($comment->children)

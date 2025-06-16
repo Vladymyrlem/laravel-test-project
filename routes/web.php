@@ -14,5 +14,9 @@ Route::get('comments/{comment}/edit', [CommentsController::class, 'edit'])->name
 Route::put('comments/{comment}', [CommentsController::class, 'update'])->name('comments.update');
 Route::post('comments/preview', [CommentsController::class, 'preview']);
 Route::get('comments/{comment}', [CommentsController::class, 'show'])->name('comments.show')->whereNumber('comment');
+Route::get('/comments/{comment}/html', function (\App\Models\Comment $comment) {
+    return view('comments.partials.comment', ['comment' => $comment])->render();
+});
+Route::get('/comments/listing', [CommentsController::class, 'listing'])->name('comments.listing');
 
 
