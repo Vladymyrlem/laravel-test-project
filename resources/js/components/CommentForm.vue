@@ -12,6 +12,7 @@ const parent_id = ref('')
 const attachment = ref(null)
 const errors = ref({})
 const imagePreview = ref(null)
+const editComment = ref(null)
 
 const { comments } = defineProps({
     comments: {
@@ -30,6 +31,19 @@ const openModal = () => {
     }
     modalInstance.show()
 }
+const openEditModal = (comment) => {
+    editComment.value = comment
+    parent_id.value = comment.parent_id || ''
+    username.value = comment.user_name
+    email.value = comment.email
+    homepage.value = comment.homepage
+    text.value = comment.text
+    imagePreview.value = comment.attachment_url || null
+    attachment.value = null // щоб не затирався старий файл
+
+    openModal()
+}
+
 const replyTo = (id) => {
     parent_id.value = id
     openModal()
@@ -57,14 +71,23 @@ const insertTag = (tag) => {
     const wrapped = `<${tag}>${selected}</${tag}>`
     text.value = text.value.substring(0, start) + wrapped + text.value.substring(end)
 }
+const cancelEdit = () => {
+    editComment.value = null
+    username.value = ''
+    email.value = ''
+    homepage.value = ''
+    text.value = ''
+    parent_id.value = ''
+    attachment.value = null
+    imagePreview.value = null
+}
 
 const submit = async () => {
     errors.value = {}
     const formData = new FormData()
-    formData.append('username', username.value)
-    formData.append('email', email.value)
+    formData.append('user_name', username.value)
+    formData.append('content', text.value)
     formData.append('homepage', homepage.value)
-    formData.append('text', text.value)
     formData.append('parent_id', parent_id.value)
     formData.append('g-recaptcha-response', grecaptcha.getResponse())
 
@@ -73,9 +96,19 @@ const submit = async () => {
     }
 
     try {
-        const response = await axios.post('/comments', formData)
+        let response;
+        if (editComment.value) {
+            formData.append('_method', 'PUT');
+            // Редагування — PUT запит на comments/{id}
+            response = await axios.post(`/comments/${editComment.value.id}`, formData, {
+                headers: { 'X-HTTP-Method-Override': 'PUT' }
+            })
+        } else {
+            // Створення — POST запит на comments
+            response = await axios.post('/comments', formData)
+        }
 
-        // Очистити
+        // Очистити форму
         username.value = ''
         email.value = ''
         homepage.value = ''
@@ -85,31 +118,37 @@ const submit = async () => {
         imagePreview.value = null
         grecaptcha.reset()
 
+        editComment.value = null
         modalInstance.hide()
 
-        // Показати toast
+        // Показати toast успіху
         const toastEl = document.getElementById('success-toast')
         const toast = new Toast(toastEl)
         toast.show()
     } catch (e) {
         if (e.response?.data?.errors) {
+            console.log('Validation errors:', e.response.data.errors); // додай для дебагу
             errors.value = e.response.data.errors
         } else {
             alert('Помилка надсилання')
         }
     }
-
-
 }
+
 onMounted(() => {
     window.replyTo = replyTo
+    window.editComment = openEditModal
 })
+
 
 
 </script>
 
 <template>
-    <button class="btn btn-primary" @click="openModal">Залишити коментар</button>
+    <h5 class="modal-title">
+        {{ editComment ? 'Редагувати коментар' : (parent_id ? 'Відповідь на коментар' : 'Залишити коментар') }}
+    </h5>
+
     <div class="position-fixed top-0 end-0 p-3" style="z-index: 1100">
         <div id="success-toast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
@@ -128,7 +167,7 @@ onMounted(() => {
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        {{ parent_id ? 'Відповідь на коментар' : 'Залишити коментар' }}
+                        {{ editComment ? 'Редагувати коментар' : (parent_id ? 'Відповідь на коментар' : 'Залишити коментар') }}
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрити"></button>
                 </div>
@@ -190,8 +229,14 @@ onMounted(() => {
                 </div>
 
                 <div class="modal-footer">
-                    <button @click="submit" class="btn btn-primary">Надіслати</button>
+                    <button v-if="editComment" class="btn btn-outline-secondary me-auto" @click="cancelEdit">
+                        Скасувати редагування
+                    </button>
+                    <button @click="submit" class="btn btn-primary">
+                        {{ editComment ? 'Зберегти зміни' : 'Надіслати' }}
+                    </button>
                 </div>
+
             </div>
         </div>
     </div>

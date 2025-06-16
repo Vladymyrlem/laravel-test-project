@@ -4,6 +4,7 @@
             <div class="meta d-flex align-items-center justify-content-start">
                 <small class="text-muted">Creating {{ $comment->created_at->format('d.m.Y H:i') }}</small>&nbsp; by&nbsp;
                 <a class="small-text" href="mailto:{{ $comment->email }}">{{ $comment->user_name }}</a>
+                <a href="{{ route('comments.edit', $comment->id) }}"></a>
             </div>
             <div class="comment-content">
                 {!! $comment->text !!}

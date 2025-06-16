@@ -76,7 +76,7 @@ class CommentsController extends Controller
             'text' => ['required'],
             'g-recaptcha-response' => 'required|captcha',
             'parent_id' => ['nullable', 'exists:comments,id'],
-            'attachment' => ['nullable', 'file', 'mimes:jpg,png,gif,txt,pdf', 'max:100'], // додано pdf
+            'attachment' => ['nullable', 'file', 'mimes:jpg,png,gif,webp,txt,pdf', 'max:100'], // додано pdf
         ]);
 
         $text = strip_tags($request->text, '<a><code><i><strong>');
@@ -150,36 +150,37 @@ class CommentsController extends Controller
         $validated = $request->validate([
             'user_name' => 'required|string|max:100',
             'content' => 'required|string|max:1000',
-            'attachment' => 'nullable|file|max:2048|mimes:jpg,jpeg,png,pdf,docx',
+            'attachment' => 'nullable|file|max:2048|mimes:jpg,jpeg,png,gif,pdf,docx,txt,webp',
             'g-recaptcha-response' => 'required|captcha',
         ]);
 
-        $comment->author = $validated['author'];
-        $comment->content = $validated['content'];
+        $comment->user_name = $validated['user_name'];
+        $comment->text = $validated['content'];
 
-        // Якщо є новий файл — зберігаємо і видаляємо старий
         if ($request->hasFile('attachment')) {
             try {
-                // 🔁 Видаляємо старий файл (якщо є)
-                if ($comment->media) {
-                    $oldFilePath = public_path($comment->media->file_url);
+                // Видаляємо старий файл, якщо є
+                $media = $comment->media()->first(); // отримуємо перший медіа-об'єкт
+                if ($media) {
+                    $oldFilePath = public_path($media->file_url);
                     if (file_exists($oldFilePath)) {
                         unlink($oldFilePath);
                     }
-                    $comment->media()->delete();
+                    $media->delete();
                 }
+
 
                 $file = $request->file('attachment');
                 $extension = strtolower($file->getClientOriginalExtension());
-                $filename = Str::uuid() . '.' . $extension;
+                $filename = \Str::uuid() . '.' . $extension;
                 $path = 'uploads/' . $filename;
 
-                // Зберігаємо файл
-                if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
-                    $manager = ImageManager::gd(); // або ImageManager::imagick()
-                    $image = $manager->read($file->getPathname());
+                if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                    $manager = new \Intervention\Image\ImageManager(['driver' => 'gd']); // або 'imagick'
+                    $image = $manager->make($file->getPathname());
                     $image->resize(320, 240, function ($constraint) {
                         $constraint->aspectRatio();
+                        $constraint->upsize();
                     });
                     $image->save(public_path($path));
                     $type = 'image';
@@ -188,14 +189,14 @@ class CommentsController extends Controller
                     $type = in_array($extension, ['pdf']) ? 'pdf' : 'text';
                 }
 
-                // Зберігаємо нове вкладення
+                // Створюємо новий запис media
                 $comment->media()->create([
                     'file_url' => '/' . $path,
                     'type' => $type,
                 ]);
             } catch (\Exception $e) {
                 Log::error('[Upload Error] ' . $e->getMessage());
-                return response()->json(['error' => 'Не вдалося оновити файл.'], 500);
+                return response()->json(['error' => 'Не вдалося завантажити файл.'], 500);
             }
         }
 
@@ -203,6 +204,7 @@ class CommentsController extends Controller
 
         return redirect()->route('comments.edit', $comment)->with('success', 'Коментар успішно оновлено!');
     }
+
 
     /**
      * Remove the specified resource from storage.
