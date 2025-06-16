@@ -39,12 +39,22 @@
         }
     },
     "scripts": {
+        "post-install-cmd": [
+            "@php artisan storage:link",
+            "mkdir -p public/uploads",
+            "chmod 775 public/uploads",
+            "chown -R www-data:www-data public/uploads || true"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
+            "@php artisan storage:link",
+            "mkdir -p public/uploads",
+            "chmod 775 public/uploads",
+            "chown -R www-data:www-data public/uploads || true"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
-        ],
-        "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
         ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
