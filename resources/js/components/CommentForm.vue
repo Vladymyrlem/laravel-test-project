@@ -4,6 +4,7 @@ import axios from 'axios'
 import { onMounted } from 'vue'
 import { Toast } from 'bootstrap'
 import DOMPurify from 'dompurify'
+import { useRoute } from 'vue-router'
 
 const username = ref('')
 const email = ref('')
@@ -15,6 +16,7 @@ const errors = ref({})
 const imagePreview = ref(null)
 const editComment = ref(null)
 const filePreview = ref(null)
+const route = useRoute()
 
 const { comments } = defineProps({
     comments: {
@@ -118,7 +120,7 @@ const cancelEdit = () => {
     attachment.value = null
     imagePreview.value = null
 }
-const validateForm = () => {
+const validateForm = async () => {
     errors.value = {}
 
     // Ім'я
@@ -135,7 +137,7 @@ const validateForm = () => {
         errors.value.email = ['Некоректний формат email']
     }
 
-    // Домашня сторінка (необов’язково)
+    // Домашня сторінка
     if (homepage.value && !/^https?:\/\/[^\s$.?#].[^\s]*$/.test(homepage.value)) {
         errors.value.homepage = ['Некоректний формат URL']
     }
@@ -152,7 +154,7 @@ const validateForm = () => {
         if (!cleanHTML.trim()) {
             errors.value.content = ['Коментар має містити лише дозволений вміст або текст']
         } else {
-            text.value = cleanHTML // заміна на очищене значення
+            text.value = cleanHTML
         }
     }
 
@@ -176,21 +178,35 @@ const validateForm = () => {
         }
 
         if (allowedImageTypes.includes(file.type)) {
-            const img = new Image()
-            const objectUrl = URL.createObjectURL(file)
-            img.src = objectUrl
-
-            img.onload = () => {
-                if (img.width > 320 || img.height > 240) {
-                    errors.value.attachment = ['Максимальний розмір зображення — 320x240 пікселів']
-                }
-                URL.revokeObjectURL(objectUrl)
+            const validImageSize = await checkImageSize(file)
+            if (!validImageSize) {
+                errors.value.attachment = ['Максимальний розмір зображення — 320x240 пікселів']
             }
         }
     }
 
     return Object.keys(errors.value).length === 0
 }
+const checkImageSize = (file) => {
+    return new Promise((resolve) => {
+        const img = new Image()
+        const objectUrl = URL.createObjectURL(file)
+
+        img.onload = () => {
+            const isValid = img.width <= 320 && img.height <= 240
+            URL.revokeObjectURL(objectUrl)
+            resolve(isValid)
+        }
+
+        img.onerror = () => {
+            URL.revokeObjectURL(objectUrl)
+            resolve(false)
+        }
+
+        img.src = objectUrl
+    })
+}
+
 const validateField = (field) => {
     const val = {
         user_name: username.value.trim(),
@@ -265,8 +281,9 @@ watch(text, () => validateField('content'))
 watch(attachment, () => validateField('attachment'))
 const submit = async () => {
     errors.value = {}
-    if (!validateForm()) {
-        return // не надсилаємо
+    const isValid = await validateForm()
+    if (!isValid) {
+        return // Не надсилаємо
     }
     const formData = new FormData()
     formData.append('user_name', username.value)
@@ -353,7 +370,7 @@ const reloadComments = () => {
 </script>
 
 <template>
-    <button class="btn btn-primary mb-3" @click="openModal">📝 Залишити коментар</button>
+    <button class="btn btn-primary mb-3 create-comment" @click="openModal">📝 Залишити коментар</button>
 
     <!--    <h5 class="modal-title">-->
     <!--        {{ editComment ? 'Редагувати коментар' : (parent_id ? 'Відповідь на коментар' : 'Залишити коментар') }}-->

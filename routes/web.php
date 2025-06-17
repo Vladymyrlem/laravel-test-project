@@ -3,10 +3,6 @@
 use App\Http\Controllers\CommentsController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
-
 Route::get('/', [CommentsController::class, 'index'])->name('comments.index');
 Route::post('comments', [CommentsController::class, 'store'])->name('comments.store');
 Route::get('comments/create', [CommentsController::class, 'create'])->name('comments.create');

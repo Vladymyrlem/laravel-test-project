@@ -1,0 +1,69 @@
+---
+ip: "192.168.56.56"
+memory: 2048
+cpus: 2
+provider: virtualbox
+
+authorize: ~/.ssh/id_rsa.pub
+
+keys:
+    - ~/.ssh/id_rsa
+
+folders:
+    - map: C:/Users/vovan/Homestead/test
+      to: /home/vagrant/code/test
+    - map: C:/Users/vovan/Homestead/laravel
+      to: /home/vagrant/code/laravel
+    - map: c:\OpenServer\domains
+      to: /home/vagrant/code/domains
+sites:
+    - map: laravel-project
+      to: /home/vagrant/code/laravel
+      type: laravel
+    - map: lesson-3
+      to: /home/vagrant/code/test/lesson-3
+      type: apache
+    - map: lesson-4
+      to: /home/vagrant/code/test/lesson-4
+      type: apache
+    - map: lesson-5
+      to: /home/vagrant/code/test/lesson-5
+      type: apache
+    - map: lesson-6
+      to: /home/vagrant/code/test/lesson-6/public
+      type: apache
+    - map: lesson-7
+      to: /home/vagrant/code/test/lesson-7/public
+      type: apache
+    - map: lesson-8
+      to: /home/vagrant/code/test/lesson-8/public
+#      type: apache
+    - map: phpmyadmin.app
+      to: /home/vagrant/phpmyadmin
+      type: apache
+
+databases: # root / secret
+    - newlaravel
+    - laravel
+    - homestead
+
+features:
+    - mysql: true
+    - mariadb: false
+    - ohmyzsh: false
+    - webdriver: false
+
+services:
+    - enabled:
+        - "mysql"
+#    - disabled:
+#        - "postgresql@11-main"
+ports:
+   - send: 50000
+     to: 5000
+   - send: 7777
+     to: 777
+     protocol: udp
+networks:
+    - type: "private_network"
+      ip: "94.179.237.248"

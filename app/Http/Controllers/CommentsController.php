@@ -33,9 +33,8 @@ class CommentsController extends Controller
         $cacheKey = "comments_{$sortField}_{$sortDirection}_page_{$page}";
 
         $comments = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($sortField, $sortDirection) {
-            return Comment::with('children')
-                ->whereNull('parent_id')
-                ->orderBy($sortField, $sortDirection)
+            return Comment::whereNull('parent_id') // ✅ лише заголовні
+            ->orderBy($sortField, $sortDirection)
                 ->paginate(25);
         });
 
@@ -99,7 +98,9 @@ class CommentsController extends Controller
 
                 // Зберігаємо в залежності від типу
                 if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
-                    $manager = ImageManager::gd(); // або ImageManager::imagick()
+//                    $manager = ImageManager::gd(); // або ImageManager::imagick()
+//                    $image = $manager->read($file->getPathname());
+                    $manager = new ImageManager(new Driver());
                     $image = $manager->read($file->getPathname());
                     $image->resize(320, 240, function ($constraint) {
                         $constraint->aspectRatio();
@@ -130,7 +131,7 @@ class CommentsController extends Controller
      */
     public function show(string $id)
     {
-        $comment = Comment::find($id);
+        $comment = Comment::with(['children.media'])->findOrFail($id);
         return view('comments.show', compact('comment'));
 
     }
