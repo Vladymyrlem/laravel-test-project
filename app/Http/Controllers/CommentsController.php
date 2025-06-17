@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\CommentCreated;
+use App\Jobs\ProcessCommentAttachment;
 use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -70,58 +72,79 @@ class CommentsController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'username' => ['required', 'regex:/^[a-zA-Z0-9]+$/u', 'max:255'],
+            'user_name' => ['required', 'regex:/^[a-zA-Z0-9]+$/u', 'max:255'],
             'email' => ['required', 'email'],
             'homepage' => ['nullable', 'url'],
             'text' => ['required'],
             'g-recaptcha-response' => 'required|captcha',
             'parent_id' => ['nullable', 'exists:comments,id'],
-            'attachment' => ['nullable', 'file', 'mimes:jpg,png,gif,txt,pdf', 'max:100'], // додано pdf
+            'attachment' => ['nullable', 'file', 'mimes:jpg,png,gif,txt,pdf', 'max:100'],
         ]);
+
 
         $text = strip_tags($request->text, '<a><code><i><strong>');
 
         $comment = Comment::create([
-            'user_name' => $validated['username'],
+            'user_name' => $validated['user_name'],
             'email' => $validated['email'],
             'homepage' => $validated['homepage'] ?? null,
             'text' => $text,
             'parent_id' => $validated['parent_id'] ?? null,
         ]);
 
-        if ($request->hasFile('attachment')) {
-            try {
-                $file = $request->file('attachment');
-                $extension = strtolower($file->getClientOriginalExtension());
-                $filename = Str::uuid() . '.' . $extension;
-                $path = 'uploads/' . $filename;
-
-                // Зберігаємо в залежності від типу
-                if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
-//                    $manager = ImageManager::gd(); // або ImageManager::imagick()
+//        if ($request->hasFile('attachment')) {
+//            try {
+//                $file = $request->file('attachment');
+//                $extension = strtolower($file->getClientOriginalExtension());
+//                $filename = Str::uuid() . '.' . $extension;
+//                $path = 'uploads/' . $filename;
+//
+//                // Зберігаємо в залежності від типу
+//                if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
+////                    $manager = ImageManager::gd(); // або ImageManager::imagick()
+////                    $image = $manager->read($file->getPathname());
+//                    $manager = new ImageManager(new Driver());
 //                    $image = $manager->read($file->getPathname());
-                    $manager = new ImageManager(new Driver());
-                    $image = $manager->read($file->getPathname());
-                    $image->resize(320, 240, function ($constraint) {
-                        $constraint->aspectRatio();
-                    });
-                    $image->save(public_path($path));
-                    $type = 'image';
-                } else {
-                    $file->move(public_path('uploads'), $filename);
-                    $type = in_array($extension, ['pdf']) ? 'pdf' : 'text';
-                }
+//                    $image->resize(320, 240, function ($constraint) {
+//                        $constraint->aspectRatio();
+//                    });
+//                    $image->save(public_path($path));
+//                    $type = 'image';
+//                } else {
+//                    $file->move(public_path('uploads'), $filename);
+//                    $type = in_array($extension, ['pdf']) ? 'pdf' : 'text';
+//                }
+//
+//                // Поліморфне збереження
+//                $comment->media()->create([
+//                    'file_url' => '/' . $path,
+//                    'type' => $type,
+//                ]);
+//            } catch (\Exception $e) {
+//                Log::error('[Upload Error] ' . $e->getMessage());
+//                return response()->json(['error' => 'Не вдалося завантажити файл.'], 500);
+//            }
+//        }
+        if ($request->hasFile('attachment')) {
+            $uploaded = $request->file('attachment');
+            $extension = strtolower($uploaded->getClientOriginalExtension());
+            $filename = Str::uuid() . '.' . $extension;
 
-                // Поліморфне збереження
-                $comment->media()->create([
-                    'file_url' => '/' . $path,
-                    'type' => $type,
-                ]);
-            } catch (\Exception $e) {
-                Log::error('[Upload Error] ' . $e->getMessage());
-                return response()->json(['error' => 'Не вдалося завантажити файл.'], 500);
+            $destination = public_path('uploads/temp');
+            if (!file_exists($destination)) {
+                mkdir($destination, 0755, true);
             }
+
+            $uploaded->move($destination, $filename);
+
+            $fullPath = $destination . '/' . $filename;
+            ProcessCommentAttachment::dispatch($comment, $fullPath);
         }
+
+
+
+        // Викликаємо подію, щоб інші частини системи могли відреагувати (broadcast, логіка тощо)
+        event(new CommentCreated($comment));
 
         return response()->json(['success' => true, 'comment' => $comment]);
     }
@@ -219,9 +242,19 @@ class CommentsController extends Controller
      */
     public function destroy(Comment $comment)
     {
+        // Видалити медіа файли
+        foreach ($comment->media as $media) {
+            $filePath = public_path(ltrim($media->file_url, '/'));
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
+            $media->delete(); // видалення з БД
+        }
+
         $comment->delete();
         return redirect()->route('comments.index')->with('success', 'Comment deleted');
     }
+
     public function listing(Request $request)
     {
         $sortField = $request->get('sort_by', 'created_at');

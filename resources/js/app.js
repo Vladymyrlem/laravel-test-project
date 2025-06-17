@@ -10,9 +10,9 @@ import Comment from './components/AnswerForm.vue'
 const app = createApp(CommentForm)
 app.mount('#vue-app')
 
-// const comment = createApp({})
+const comment = createApp(Comment)
 // comment.component('comment', Comment)
-// comment.mount('#comment')
+comment.mount('#comment')
 function insertTag(tag) {
     const textarea = document.getElementById('text');
     const start = textarea.selectionStart;

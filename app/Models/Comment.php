@@ -19,7 +19,6 @@ class Comment extends Model
         'homepage',
         'text',
         'parent_id',
-        'image_path'
     ];
 
     // Зв'язок з батьківським коментарем

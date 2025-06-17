@@ -2,27 +2,31 @@
 <!-- Vue-компонент -->
 
 
-<div class="container-lg">
+<div class="container-lg @if(Route::currentRouteName() === 'comments.index') home-page @endif">
     <div id="vue-app" class="mb-3">
     </div>
-    <form method="GET" id="sortForm" class="row g-2 mb-4">
-        <div class="col-auto">
-            <select name="sort_by" class="form-select">
-                <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>Дата</option>
-                <option value="user_name" {{ request('sort_by') == 'user_name' ? 'selected' : '' }}>Ім'я</option>
-                <option value="email" {{ request('sort_by') == 'email' ? 'selected' : '' }}>Email</option>
-            </select>
-        </div>
-        <div class="col-auto">
-            <select name="sort_dir" class="form-select">
-                <option value="desc" {{ request('sort_dir') == 'desc' ? 'selected' : '' }}>Спадання</option>
-                <option value="asc" {{ request('sort_dir') == 'asc' ? 'selected' : '' }}>Зростання</option>
-            </select>
-        </div>
-        <div class="col-auto">
-            <button class="btn btn-primary">Сортувати</button>
-        </div>
-    </form>
+<form method="GET" id="sortForm" class="row g-2 mb-4">
+    <div class="col-auto">
+        <select name="sort_by" class="form-select">
+            <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>Дата</option>
+            <option value="user_name" {{ request('sort_by') == 'user_name' ? 'selected' : '' }}>Ім'я</option>
+            <option value="email" {{ request('sort_by') == 'email' ? 'selected' : '' }}>Email</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <select name="sort_dir" class="form-select">
+            <option value="desc" {{ request('sort_dir') == 'desc' ? 'selected' : '' }}>Спадання</option>
+            <option value="asc" {{ request('sort_dir') == 'asc' ? 'selected' : '' }}>Зростання</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary">Сортувати</button>
+    </div>
+</form>
+    <p class="text-muted">
+        Сортування: <strong>{{ $sortField }}</strong> у порядку <strong>{{ $sortDirection == 'asc' ? 'зростання' : 'спадання' }}</strong>
+    </p>
+
 </div>
 <div class="container-lg">
     <div id="commentsContainer">
@@ -77,5 +81,4 @@
             }
         });
     });
-
 </script>

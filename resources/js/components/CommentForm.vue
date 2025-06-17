@@ -287,7 +287,8 @@ const submit = async () => {
     }
     const formData = new FormData()
     formData.append('user_name', username.value)
-    formData.append('content', text.value)
+    formData.append('email', email.value)
+    formData.append('text', text.value) // ✅ ПРАВИЛЬНО
     formData.append('homepage', homepage.value)
     formData.append('parent_id', parent_id.value)
     formData.append('g-recaptcha-response', grecaptcha.getResponse())
@@ -330,15 +331,15 @@ const submit = async () => {
         reloadComments();
 
     } catch (e) {
-        console.error('Помилка надсилання. Повна відповідь:', e)
+    console.error('Помилка надсилання. Повна відповідь:', e)
 
-        if (e.response?.data?.errors) {
-            console.log('Validation errors:', e.response.data.errors);
-            errors.value = e.response.data.errors;
-        } else {
-            alert('Помилка надсилання');
-        }
+    if (e.response?.data?.errors) {
+        console.log('Validation errors:', e.response.data.errors);
+        errors.value = e.response.data.errors;
+    } else {
+        alert('Помилка надсилання');
     }
+}
 }
 
 
@@ -372,9 +373,9 @@ const reloadComments = () => {
 <template>
     <button class="btn btn-primary mb-3 create-comment" @click="openModal">📝 Залишити коментар</button>
 
-    <!--    <h5 class="modal-title">-->
-    <!--        {{ editComment ? 'Редагувати коментар' : (parent_id ? 'Відповідь на коментар' : 'Залишити коментар') }}-->
-    <!--    </h5>-->
+<!--    <h5 class="modal-title">-->
+<!--        {{ editComment ? 'Редагувати коментар' : (parent_id ? 'Відповідь на коментар' : 'Залишити коментар') }}-->
+<!--    </h5>-->
 
     <div class="position-fixed top-0 end-0 p-3" style="z-index: 1100">
         <div id="success-toast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
@@ -439,12 +440,12 @@ const reloadComments = () => {
                         <label for="attachment" class="form-label">Прикріпити файл</label>
                         <input type="file" name="attachment" id="attachment" class="form-control" @change="handleFileChange" />
                         <div v-if="errors.attachment" class="text-danger mt-1">{{ errors.attachment[0] }}</div>
-                        <!--                        <div id="image-preview" class="mt-2">-->
-                        <!--                            <img v-if="imagePreview" :src="imagePreview" alt="Превʼю" class="img-fluid rounded" />-->
-                        <!--                            <div v-else-if="editComment?.attachment_url">-->
-                        <!--                                <a :href="editComment.attachment_url" target="_blank">📎 Переглянути прикріплений файл</a>-->
-                        <!--                            </div>-->
-                        <!--                        </div>-->
+<!--                        <div id="image-preview" class="mt-2">-->
+<!--                            <img v-if="imagePreview" :src="imagePreview" alt="Превʼю" class="img-fluid rounded" />-->
+<!--                            <div v-else-if="editComment?.attachment_url">-->
+<!--                                <a :href="editComment.attachment_url" target="_blank">📎 Переглянути прикріплений файл</a>-->
+<!--                            </div>-->
+<!--                        </div>-->
                         <div class="mb-2" v-if="imagePreview">
                             <a :href="imagePreview" target="_blank">
                                 <img :src="imagePreview" class="img-thumbnail" width="100" />

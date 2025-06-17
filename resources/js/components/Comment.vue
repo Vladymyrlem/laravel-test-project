@@ -3,7 +3,7 @@
 </script>
 
 <template>
-    <p>Comment</p>
+<p>Comment</p>
 </template>
 
 <style scoped>

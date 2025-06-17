@@ -4,7 +4,7 @@
 
 @section('content')
     {{-- resources/views/comments/show.blade.php --}}
-    <div id="vue-app" class="mb-3">
+    <div id="comment" class="mb-3">
     </div>
     <div class="container-lg">
         <div class="row mb-3">
@@ -17,7 +17,7 @@
 
         <div class="row">
             <div class="col">
-                <h4>Відповіді на коментар</h4>
+                <h4>Відповіді на коментар від {{ $comment->user_name }}</h4>
             </div>
         </div>
 

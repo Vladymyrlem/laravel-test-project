@@ -370,7 +370,7 @@ const reloadComments = () => {
 </script>
 
 <template>
-    <!--    <button class="btn btn-primary mb-3 create-comment" @click="openModal">📝 Залишити коментар</button>-->
+<!--    <button class="btn btn-primary mb-3 create-comment" @click="openModal">📝 Залишити коментар</button>-->
 
     <!--    <h5 class="modal-title">-->
     <!--        {{ editComment ? 'Редагувати коментар' : (parent_id ? 'Відповідь на коментар' : 'Залишити коментар') }}-->
