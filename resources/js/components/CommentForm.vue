@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import axios from 'axios'
 import { onMounted } from 'vue'
 import { Toast } from 'bootstrap'
@@ -99,9 +99,137 @@ const cancelEdit = () => {
     attachment.value = null
     imagePreview.value = null
 }
+const validateForm = () => {
+    errors.value = {}
 
+    // Ім'я
+    if (!username.value.trim()) {
+        errors.value.user_name = ['Ім’я обовʼязкове']
+    } else if (!/^[a-zA-Z0-9]+$/.test(username.value)) {
+        errors.value.user_name = ['Ім’я може містити лише латинські літери та цифри']
+    }
+
+    // Email
+    if (!email.value.trim()) {
+        errors.value.email = ['Email обовʼязковий']
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+        errors.value.email = ['Некоректний формат email']
+    }
+
+    // Домашня сторінка (необов’язково)
+    if (homepage.value && !/^https?:\/\/[^\s$.?#].[^\s]*$/.test(homepage.value)) {
+        errors.value.homepage = ['Некоректний формат URL']
+    }
+
+    // Текст
+    if (!text.value.trim()) {
+        errors.value.content = ['Коментар обовʼязковий']
+    } else {
+        const allowedTags = ['<a ', '</a>', '<code>', '</code>', '<i>', '</i>', '<strong>', '</strong>']
+        const temp = text.value.replace(/<(?!\/?a\b|\/?code\b|\/?i\b|\/?strong\b)[^>]*>/g, '')
+        if (/<[^>]*>/.test(temp)) {
+            errors.value.content = ['Дозволені лише теги: <a>, <code>, <i>, <strong>']
+        }
+    }
+
+    // CAPTCHA
+    if (!grecaptcha.getResponse()) {
+        errors.value['g-recaptcha-response'] = ['Підтвердіть CAPTCHA']
+    }
+
+    // Файл
+    if (attachment.value) {
+        const file = attachment.value
+        const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif']
+        const isText = file.type === 'text/plain'
+
+        if (!allowedImageTypes.includes(file.type) && !isText) {
+            errors.value.attachment = ['Дозволено лише зображення (jpg, png, gif) або текстові файли (txt)']
+        }
+
+        if (isText && file.size > 100 * 1024) {
+            errors.value.attachment = ['Максимальний розмір текстового файлу — 100KB']
+        }
+
+        if (allowedImageTypes.includes(file.type)) {
+            const img = new Image()
+            const objectUrl = URL.createObjectURL(file)
+            img.src = objectUrl
+
+            img.onload = () => {
+                if (img.width > 320 || img.height > 240) {
+                    errors.value.attachment = ['Максимальний розмір зображення — 320x240 пікселів']
+                }
+                URL.revokeObjectURL(objectUrl)
+            }
+        }
+    }
+
+    return Object.keys(errors.value).length === 0
+}
+const validateField = (field) => {
+    const val = {
+        user_name: username.value.trim(),
+        email: email.value.trim(),
+        homepage: homepage.value.trim(),
+        content: text.value.trim(),
+        'g-recaptcha-response': grecaptcha.getResponse(),
+    }
+
+    const fieldErrors = {}
+
+    if (field === 'user_name') {
+        if (!val.user_name) fieldErrors.user_name = ['Ім’я є обовʼязковим']
+        else if (!/^[a-zA-Z0-9]+$/.test(val.user_name)) fieldErrors.user_name = ['Лише латинські літери та цифри']
+    }
+
+    if (field === 'email') {
+        if (!val.email) fieldErrors.email = ['Email є обовʼязковим']
+        else if (!/^\S+@\S+\.\S+$/.test(val.email)) fieldErrors.email = ['Невірний формат email']
+    }
+
+    if (field === 'homepage' && val.homepage && !/^https?:\/\/[\w\-\.]+\.[a-z]{2,}/.test(val.homepage)) {
+        fieldErrors.homepage = ['Невірний формат URL']
+    }
+
+    if (field === 'content') {
+        if (!val.content) fieldErrors.content = ['Текст коментаря є обовʼязковим']
+    }
+
+    if (field === 'g-recaptcha-response') {
+        if (!val['g-recaptcha-response']) fieldErrors['g-recaptcha-response'] = ['CAPTCHA обовʼязкова']
+    }
+
+    if (field === 'attachment' && attachment.value) {
+        const file = attachment.value
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'text/plain']
+        const maxSize = 100 * 1024 // 100KB
+
+        if (!allowedTypes.includes(file.type)) {
+            fieldErrors.attachment = ['Непідтримуваний тип файлу']
+        } else if (file.type === 'text/plain' && file.size > maxSize) {
+            fieldErrors.attachment = ['Текстовий файл повинен бути менше 100 КБ']
+        }
+    }
+
+    errors.value = {
+        ...errors.value,
+        ...fieldErrors
+    }
+
+    // Очистити помилку, якщо поле стало валідним
+    if (!fieldErrors[field]) delete errors.value[field]
+}
+watch(username, () => validateField('user_name'))
+watch(email, () => validateField('email'))
+watch(homepage, () => validateField('homepage'))
+watch(text, () => validateField('content'))
+watch(attachment, () => validateField('attachment'))
 const submit = async () => {
     errors.value = {}
+    if (!validateForm()) {
+        return // не надсилаємо
+    }
     const formData = new FormData()
     formData.append('user_name', username.value)
     formData.append('content', text.value)
@@ -162,6 +290,7 @@ const submit = async () => {
 onMounted(() => {
     window.replyTo = replyTo
     window.editComment = openEditModal
+    window.openCommentModal = openModal
 })
 const reloadComments = () => {
     const container = document.getElementById('commentsContainer');
@@ -183,14 +312,14 @@ const reloadComments = () => {
         });
 }
 
-
-
 </script>
 
 <template>
-    <h5 class="modal-title">
-        {{ editComment ? 'Редагувати коментар' : (parent_id ? 'Відповідь на коментар' : 'Залишити коментар') }}
-    </h5>
+    <button class="btn btn-primary mb-3" @click="openModal">📝 Залишити коментар</button>
+
+    <!--    <h5 class="modal-title">-->
+    <!--        {{ editComment ? 'Редагувати коментар' : (parent_id ? 'Відповідь на коментар' : 'Залишити коментар') }}-->
+    <!--    </h5>-->
 
     <div class="position-fixed top-0 end-0 p-3" style="z-index: 1100">
         <div id="success-toast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
@@ -224,16 +353,19 @@ const reloadComments = () => {
                     <div class="mb-3">
                         <label class="form-label">Ім’я</label>
                         <input v-model="username" type="text" class="form-control" />
+                        <div v-if="errors.user_name" class="text-danger mt-1">{{ errors.user_name[0] }}</div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Email</label>
                         <input v-model="email" type="email" class="form-control" />
+                        <div v-if="errors.email" class="text-danger mt-1">{{ errors.email[0] }}</div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Домашня сторінка</label>
                         <input v-model="homepage" type="url" class="form-control" />
+                        <div v-if="errors.homepage" class="text-danger mt-1">{{ errors.homepage[0] }}</div>
                     </div>
 
                     <div class="mb-3">
@@ -245,11 +377,13 @@ const reloadComments = () => {
                             <button type="button" @click="insertTag('a')">Link</button>
                         </div>
                         <textarea v-model="text" id="text" rows="4" class="form-control"></textarea>
+                        <div v-if="errors.text" class="text-danger mt-1">{{ errors.text[0] }}</div>
                     </div>
 
                     <div class="mb-3">
                         <label for="attachment" class="form-label">Прикріпити файл</label>
                         <input type="file" name="attachment" id="attachment" class="form-control" @change="handleFileChange" />
+                        <div v-if="errors.attachment" class="text-danger mt-1">{{ errors.attachment[0] }}</div>
                         <div id="image-preview" class="mt-2">
                             <img v-if="imagePreview" :src="imagePreview" alt="Превʼю" class="img-fluid rounded" />
                             <div v-else-if="editComment?.attachment_url">
@@ -259,8 +393,6 @@ const reloadComments = () => {
 
 
                     </div>
-
-
                     <div class="mb-3" v-if="!parent_id">
                         <label class="form-label">Відповідь на:</label>
                         <select v-model="parent_id" class="form-select">
