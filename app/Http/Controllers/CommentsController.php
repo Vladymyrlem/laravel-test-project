@@ -174,13 +174,13 @@ class CommentsController extends Controller
     {
         $validated = $request->validate([
             'user_name' => 'required|string|max:100',
-            'content' => 'required|string|max:1000',
+            'text' => 'required|string|max:1000',
             'attachment' => 'nullable|file|max:2048|mimes:jpg,jpeg,png,gif,pdf,docx,txt',
             'g-recaptcha-response' => 'required|captcha',
         ]);
 
         $comment->user_name = $validated['user_name'];
-        $comment->text = $validated['content'];
+        $comment->text = $validated['text'];
 
         if ($request->hasFile('attachment')) {
             try {
