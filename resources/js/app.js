@@ -13,6 +13,26 @@ app.mount('#vue-app')
 const comment = createApp(Comment)
 // comment.component('comment', Comment)
 comment.mount('#comment')
+
+import Echo from 'laravel-echo';
+
+window.Pusher = require('pusher-js');
+
+window.Echo = new Echo({
+    broadcaster: 'pusher',
+    key: import.meta.env.VITE_PUSHER_APP_KEY,
+    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
+    wsHost: window.location.hostname,
+    wsPort: 6001,
+    forceTLS: false,
+    disableStats: true,
+});
+
+window.Echo.channel('comments')
+    .listen('CommentCreated', (e) => {
+        console.log('Новий коментар:', e.comment);
+        // Тут можна викликати глобальне оновлення, або покликати функції
+    });
 function insertTag(tag) {
     const textarea = document.getElementById('text');
     const start = textarea.selectionStart;
