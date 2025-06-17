@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import axios from 'axios'
 import { onMounted } from 'vue'
 import { Toast } from 'bootstrap'
+import DOMPurify from 'dompurify'
 
 const username = ref('')
 const email = ref('')
@@ -13,6 +14,7 @@ const attachment = ref(null)
 const errors = ref({})
 const imagePreview = ref(null)
 const editComment = ref(null)
+const filePreview = ref(null)
 
 const { comments } = defineProps({
     comments: {
@@ -21,6 +23,10 @@ const { comments } = defineProps({
     }
 })
 
+const cleanHTML = DOMPurify.sanitize(text.value, {
+    ALLOWED_TAGS: ['a', 'code', 'i', 'strong'],
+    ALLOWED_ATTR: ['href', 'title']
+})
 
 let modalInstance = null
 
@@ -41,11 +47,23 @@ const openEditModal = (comment) => {
 
     attachment.value = null // очищаємо новий файл
 
-    if (comment.media && comment.media.length) {
+    if (comment.media && comment.media.length && comment.media[0].url) {
         const file = comment.media[0]
-        const extension = file.url.split('.').pop().toLowerCase()
+        if (file) {
+            const extension = file.url.split('.').pop().toLowerCase()
+            if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
+                imagePreview.value = file.url
+                filePreview.value = null
+            } else {
+                imagePreview.value = null
+                filePreview.value = {
+                    url: file.url,
+                    name: file.url.split('/').pop()
+                }
+            }
+        }
 
-        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+        if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
             imagePreview.value = file.url
         } else {
             imagePreview.value = null
@@ -57,6 +75,7 @@ const openEditModal = (comment) => {
         editComment.value.attachment_url = null
         editComment.value.attachment_type = null
     }
+
 
     openModal()
 }
@@ -125,10 +144,15 @@ const validateForm = () => {
     if (!text.value.trim()) {
         errors.value.content = ['Коментар обовʼязковий']
     } else {
-        const allowedTags = ['<a ', '</a>', '<code>', '</code>', '<i>', '</i>', '<strong>', '</strong>']
-        const temp = text.value.replace(/<(?!\/?a\b|\/?code\b|\/?i\b|\/?strong\b)[^>]*>/g, '')
-        if (/<[^>]*>/.test(temp)) {
-            errors.value.content = ['Дозволені лише теги: <a>, <code>, <i>, <strong>']
+        const cleanHTML = DOMPurify.sanitize(text.value, {
+            ALLOWED_TAGS: ['a', 'code', 'i', 'strong'],
+            ALLOWED_ATTR: ['href', 'title']
+        })
+
+        if (!cleanHTML.trim()) {
+            errors.value.content = ['Коментар має містити лише дозволений вміст або текст']
+        } else {
+            text.value = cleanHTML // заміна на очищене значення
         }
     }
 
@@ -193,8 +217,22 @@ const validateField = (field) => {
     }
 
     if (field === 'content') {
-        if (!val.content) fieldErrors.content = ['Текст коментаря є обовʼязковим']
+        if (!val.content) {
+            fieldErrors.content = ['Текст коментаря є обовʼязковим']
+        } else {
+            const cleanHTML = DOMPurify.sanitize(val.content, {
+                ALLOWED_TAGS: ['a', 'code', 'i', 'strong'],
+                ALLOWED_ATTR: ['href', 'title']
+            })
+
+            if (!cleanHTML.trim()) {
+                fieldErrors.content = ['Має бути текст або теги: <a>, <code>, <i>, <strong>']
+            } else {
+                text.value = cleanHTML
+            }
+        }
     }
+
 
     if (field === 'g-recaptcha-response') {
         if (!val['g-recaptcha-response']) fieldErrors['g-recaptcha-response'] = ['CAPTCHA обовʼязкова']
@@ -384,11 +422,22 @@ const reloadComments = () => {
                         <label for="attachment" class="form-label">Прикріпити файл</label>
                         <input type="file" name="attachment" id="attachment" class="form-control" @change="handleFileChange" />
                         <div v-if="errors.attachment" class="text-danger mt-1">{{ errors.attachment[0] }}</div>
-                        <div id="image-preview" class="mt-2">
-                            <img v-if="imagePreview" :src="imagePreview" alt="Превʼю" class="img-fluid rounded" />
-                            <div v-else-if="editComment?.attachment_url">
-                                <a :href="editComment.attachment_url" target="_blank">📎 Переглянути прикріплений файл</a>
-                            </div>
+                        <!--                        <div id="image-preview" class="mt-2">-->
+                        <!--                            <img v-if="imagePreview" :src="imagePreview" alt="Превʼю" class="img-fluid rounded" />-->
+                        <!--                            <div v-else-if="editComment?.attachment_url">-->
+                        <!--                                <a :href="editComment.attachment_url" target="_blank">📎 Переглянути прикріплений файл</a>-->
+                        <!--                            </div>-->
+                        <!--                        </div>-->
+                        <div class="mb-2" v-if="imagePreview">
+                            <a :href="imagePreview" target="_blank">
+                                <img :src="imagePreview" class="img-thumbnail" width="100" />
+                            </a>
+                        </div>
+
+                        <div class="mb-2" v-else-if="filePreview">
+                            <a :href="filePreview.url" target="_blank">
+                                {{ filePreview.name }}
+                            </a>
                         </div>
 
 

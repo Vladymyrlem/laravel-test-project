@@ -33,7 +33,13 @@
                     {{--            <a href="{{ route('comments.create', ['parent_id' => $comment->id]) }}" class="btn btn-sm btn-outline-primary">Відповісти</a>--}}
 
                 </div>
-                <div class="mt-2 d-flex justify-content-end">
+
+                <div class="mt-2 d-flex justify-content-between align-items-center">
+                    <div class="comments-count">
+                        <a href="{{ route('comments.show',$comment->id) }}">
+                            <span class="count">Comments {{ count($comment->children) }}</span>
+                        </a>
+                    </div>
                     <button class="btn btn-sm btn-outline-primary reply-button d-flex" onclick="replyTo({{ $comment->id }})">
                         <span>Reply</span>
                         <svg fill="#000000" height="800px" width="800px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 330 330" xml:space="preserve"><script xmlns=""/>
@@ -49,12 +55,14 @@
 
 
         {{-- Рекурсія --}}
-        @if($comment->children)
+        {{-- Показуємо дочірні коментарі лише якщо не на сторінці перегляду одного коментаря --}}
+        @if(!request()->routeIs('comments.show') && $comment->children)
             <div class="ms-4">
                 @foreach($comment->children as $reply)
                     @include('comments.partials.comment', ['comment' => $reply])
                 @endforeach
             </div>
         @endif
+
     </div>
 </div>
