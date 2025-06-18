@@ -83,11 +83,11 @@ php artisan key:generate
 Укажите параметры подключения к базе данных в .env:
 
 DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
+DB_HOST=db
 DB_PORT=3306
-DB_DATABASE=comments
-DB_USERNAME=root
-DB_PASSWORD=secret
+DB_DATABASE=laravel_test
+DB_USERNAME=laraveluser
+DB_PASSWORD=secretpassword
 
 Выполните миграции и сидеры:
 
