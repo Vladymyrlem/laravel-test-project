@@ -17,36 +17,28 @@ class CommentsSeeder extends Seeder
 
     public function run(): void
     {
+        // Очищення
+        Comment::truncate();
+        Storage::disk('public')->deleteDirectory('uploads');
         Storage::disk('public')->makeDirectory('uploads');
 
         $imageFiles = glob(database_path('seed_files/*.jpg'));
         $textFiles = glob(database_path('seed_files/*.txt'));
 
-        Comment::factory()
+        $rootComments = Comment::factory()
             ->count(100)
             ->create()
-            ->each(function ($comment, $index) use ($imageFiles, $textFiles) {
-                // Встановлюємо випадкову дату в межах останніх 3 днів
-                $randomDate = Carbon::now()->subDays(rand(0, 2))->subMinutes(rand(0, 1440));
-                $comment->created_at = $randomDate;
-                $comment->updated_at = $randomDate;
-                $comment->save();
-
+            ->each(function ($comment) use ($imageFiles, $textFiles) {
                 $this->attachMedia($comment, $imageFiles, $textFiles);
+            });
 
-                if ($index < 10) {
-                    Comment::factory()
-                        ->count(rand(5, 10))
-                        ->create(['parent_id' => $comment->id])
-                        ->each(function ($reply) use ($imageFiles, $textFiles) {
-                            $randomDate = Carbon::now()->subDays(rand(0, 2))->subMinutes(rand(0, 1440));
-                            $reply->created_at = $randomDate;
-                            $reply->updated_at = $randomDate;
-                            $reply->save();
-
-                            $this->attachMedia($reply, $imageFiles, $textFiles);
-                        });
-                }
+        Comment::factory()
+            ->count(173)
+            ->create()
+            ->each(function ($comment) use ($rootComments, $imageFiles, $textFiles) {
+                $comment->parent_id = $rootComments->random()->id;
+                $comment->save();
+                $this->attachMedia($comment, $imageFiles, $textFiles);
             });
     }
 
