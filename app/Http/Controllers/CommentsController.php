@@ -37,7 +37,7 @@ class CommentsController extends Controller
         $comments = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($sortField, $sortDirection) {
             return Comment::whereNull('parent_id') // ✅ лише заголовні
             ->orderBy($sortField, $sortDirection)
-                ->paginate(25);
+                ->paginate(45);
         });
 
         return view('comments.index', compact('comments', 'sortField', 'sortDirection'));

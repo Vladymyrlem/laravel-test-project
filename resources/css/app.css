@@ -31,7 +31,9 @@
     color: #000;
 }
 .img-thumbnail{
+    height: auto;
     width: auto!important;
+    max-width: 200px;
 }
 .card-body .meta{
     padding-bottom: 10px;
